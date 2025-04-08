@@ -6,6 +6,8 @@ import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
 import { hashPassword } from 'helpers/util';
 import aqp from 'api-query-params';
+import { v4 as uuidv4 } from 'uuid';
+import dayjs from 'dayjs';
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) { }
@@ -27,6 +29,25 @@ export class UsersService {
     // create user
     const user = await this.userModel.create({
       name, email, password: hashedPassword, phone, address, image
+    })
+    return { _id: user._id }
+  }
+  async createUserClient(createUserDto: CreateUserDto) {
+
+    const { name, email, password, phone, address, image } = createUserDto;
+    //check email exist
+    const check = await this.isExistEmail(email);
+    if (check) {
+      throw new BadRequestException("Email đã tồn tại. Vui lòng sử dụng email khác!")
+    }
+    //hash password
+    const hashedPassword = hashPassword(password);
+    // create user
+    const user = await this.userModel.create({
+      name, email, password: hashedPassword, phone, address, image,
+      isActive: false,
+      codeId: uuidv4(),
+      codeExpired: dayjs().add(1, 'day')
     })
     return { _id: user._id }
   }
