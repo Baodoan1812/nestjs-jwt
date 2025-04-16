@@ -3,6 +3,10 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { UsersService } from '@/modules/users/users.service';
 import { comparePassword } from 'helpers/util';
 import { JwtService } from '@nestjs/jwt';
+import { VerifyDto } from './dto/verify.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { ResendCodeIdDto } from './dto/resend-codeId.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 @Injectable()
 export class AuthService {
     constructor(
@@ -11,11 +15,17 @@ export class AuthService {
     ) { }
     async validateUser(username: string, pass: string): Promise<any> {
         const user = await this.usersService.findByEmail(username);
-
-        const check = await comparePassword(pass, user.password);
-        if (!user || !check) {
+        if (!user) {
             return null;
         }
+        if (user.isActive === false) {
+            return null;
+        }
+        const check = await comparePassword(pass, user.password);
+        if (!check) {
+            return null;
+        }
+
         return user;
 
 
@@ -26,7 +36,18 @@ export class AuthService {
             access_token: this.jwtService.sign(payload),
         };
     }
-    async register(createUserDto) {
+    async register(createUserDto: CreateUserDto) {
         return this.usersService.createUserClient(createUserDto);
     }
+
+    async verify(verifyDto: VerifyDto) {
+        return this.usersService.verifyUser(verifyDto);
+    }
+    async resend(resendCodeId: ResendCodeIdDto) {
+        return this.usersService.resendCodeIdUser(resendCodeId);
+    }
+    // async forgotPassword(forgotPassword: ForgotPasswordDto) {
+    //     return this.usersService.forgotPassword(forgotPassword);
+    // }
+
 }

@@ -8,9 +8,14 @@ import { hashPassword } from 'helpers/util';
 import aqp from 'api-query-params';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
+import { MailerService } from '@nestjs-modules/mailer';
+import { VerifyDto } from '@/auth/dto/verify.dto';
+import { ResendCodeIdDto } from '@/auth/dto/resend-codeId.dto';
+import { ForgotPasswordDto } from '@/auth/dto/forgot-password.dto';
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) { }
+  constructor(@InjectModel(User.name) private userModel: Model<User>,
+    private readonly mailerService: MailerService) { }
   isExistEmail = async (email: string) => {
     const userExist = await this.userModel.exists({ email });
     if (userExist) return true;
@@ -43,12 +48,24 @@ export class UsersService {
     //hash password
     const hashedPassword = hashPassword(password);
     // create user
+    const codeId = uuidv4();
     const user = await this.userModel.create({
       name, email, password: hashedPassword, phone, address, image,
       isActive: false,
-      codeId: uuidv4(),
-      codeExpired: dayjs().add(1, 'day')
+      codeId: codeId,
+      codeExpired: dayjs().add(30, 'seconds')
     })
+    this.mailerService
+      .sendMail({
+        to: user.email, // list of receivers
+        from: 'noreply@nestjs.com', // sender address
+        subject: 'Testing Nest MailerModule ✔', // Subject line
+        context: {
+          name: user.name,
+          activationCode: codeId
+        },
+        template: 'register'
+      })
     return { _id: user._id }
   }
 
@@ -93,11 +110,55 @@ export class UsersService {
     return await this.userModel.findOne({ email });
   }
   async update(updateUserDto: UpdateUserDto) {
-    // console.log(updateUserDto)
     return await this.userModel.updateOne({ _id: updateUserDto._id }, { ...updateUserDto });
   }
 
   async remove(id: string) {
     return await this.userModel.deleteOne({ _id: id });
+
   }
+
+  async verifyUser(verifyDto: VerifyDto) {
+    const user = await this.userModel.findOne({ _id: verifyDto._id });
+    const checkExpireCodeId = dayjs().isBefore(user.codeExpired);
+    if (!checkExpireCodeId) {
+      throw new BadRequestException();
+    }
+    const check = (verifyDto.codeId === user.codeId);
+
+    if (check) {
+      return this.userModel.updateOne({ _id: verifyDto._id }, { isActive: true })
+
+    }
+    else {
+      throw new BadRequestException();
+    }
+
+  }
+  async resendCodeIdUser(resendCodeId: ResendCodeIdDto) {
+    const codeId = uuidv4();
+    const user = await this.userModel.findOne({
+      _id: resendCodeId._id
+    })
+    if (!user) {
+      throw new BadRequestException();
+    }
+    await this.userModel.updateOne({ _id: resendCodeId._id }, {
+      codeId: codeId,
+      codeExpired: dayjs().add(30, 'seconds')
+    })
+    this.mailerService
+      .sendMail({
+        to: user.email, // list of receivers
+        from: 'noreply@nestjs.com', // sender address
+        subject: 'Testing Nest MailerModule ✔', // Subject line
+        context: {
+          name: user.name,
+          activationCode: codeId
+        },
+        template: 'register'
+      })
+    return { _id: user._id }
+  }
+
 }

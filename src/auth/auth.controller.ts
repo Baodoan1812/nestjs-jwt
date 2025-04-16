@@ -7,9 +7,17 @@ import { LocalAuthGuard } from './passport/local-auth.guard';
 import { JwtAuthGuard } from './passport/jwt-auth.guard';
 import { Public } from '@/decorator/customize';
 import { CreateUserDto } from './dto/create-user.dto';
+import { MailerService } from '@nestjs-modules/mailer';
+import { UsersService } from '@/modules/users/users.service';
+import { VerifyDto } from './dto/verify.dto';
+import { ResendCodeIdDto } from './dto/resend-codeId.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) { }
+    constructor(private authService: AuthService,
+        private readonly mailerService: MailerService,
+        private usersService: UsersService,
+    ) { }
     @Public()
     @UseGuards(LocalAuthGuard)
     @Post('login')
@@ -25,5 +33,19 @@ export class AuthController {
     getProfile(@Request() req) {
         return req.user;
     }
-
+    @Public()
+    @Post('verify')
+    async verify(@Body() verifyDto: VerifyDto) {
+        return this.authService.verify(verifyDto)
+    }
+    @Public()
+    @Post('resend-codeId')
+    async resend(@Body() resendCodeIdDto: ResendCodeIdDto) {
+        return this.authService.resend(resendCodeIdDto)
+    }
+    // @Public()
+    // @Post('forgot-password')
+    // async forgotPassword(@Body() forgotPassword: ForgotPasswordDto) {
+    //     return this.authService.forgotPassword(forgotPassword)
+    // }
 }
