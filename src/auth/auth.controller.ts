@@ -11,7 +11,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { UsersService } from '@/modules/users/users.service';
 import { VerifyDto } from './dto/verify.dto';
 import { ResendCodeIdDto } from './dto/resend-codeId.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService,
@@ -43,9 +43,15 @@ export class AuthController {
     async resend(@Body() resendCodeIdDto: ResendCodeIdDto) {
         return this.authService.resend(resendCodeIdDto)
     }
-    // @Public()
-    // @Post('forgot-password')
-    // async forgotPassword(@Body() forgotPassword: ForgotPasswordDto) {
-    //     return this.authService.forgotPassword(forgotPassword)
-    // }
+    @Public()
+    @Post('forgot-password')
+    async forgotPassword(@Body("email") email: string) {
+        return this.authService.forgotPassword(email)
+    }
+    @Public()
+    @Post('change-password')
+    async changePassword(@Body() changePassword: ChangePasswordDto) {
+        return this.authService.changePassword(changePassword)
+    }
+
 }

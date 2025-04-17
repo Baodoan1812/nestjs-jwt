@@ -6,7 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { VerifyDto } from './dto/verify.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ResendCodeIdDto } from './dto/resend-codeId.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 @Injectable()
 export class AuthService {
     constructor(
@@ -46,8 +46,11 @@ export class AuthService {
     async resend(resendCodeId: ResendCodeIdDto) {
         return this.usersService.resendCodeIdUser(resendCodeId);
     }
-    // async forgotPassword(forgotPassword: ForgotPasswordDto) {
-    //     return this.usersService.forgotPassword(forgotPassword);
-    // }
+    async forgotPassword(email: string) {
+        return this.usersService.forgotPassword(email);
+    }
+    async changePassword(data: ChangePasswordDto) {
+        return this.usersService.changePassword(data);
+    }
 
 }

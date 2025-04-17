@@ -11,7 +11,7 @@ import dayjs from 'dayjs';
 import { MailerService } from '@nestjs-modules/mailer';
 import { VerifyDto } from '@/auth/dto/verify.dto';
 import { ResendCodeIdDto } from '@/auth/dto/resend-codeId.dto';
-import { ForgotPasswordDto } from '@/auth/dto/forgot-password.dto';
+import { ChangePasswordDto } from '@/auth/dto/change-password.dto';
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>,
@@ -59,7 +59,7 @@ export class UsersService {
       .sendMail({
         to: user.email, // list of receivers
         from: 'noreply@nestjs.com', // sender address
-        subject: 'Testing Nest MailerModule ✔', // Subject line
+        subject: 'Code verify user ', // Subject line
         context: {
           name: user.name,
           activationCode: codeId
@@ -151,7 +151,7 @@ export class UsersService {
       .sendMail({
         to: user.email, // list of receivers
         from: 'noreply@nestjs.com', // sender address
-        subject: 'Testing Nest MailerModule ✔', // Subject line
+        subject: 'Resend codeId to verify user', // Subject line
         context: {
           name: user.name,
           activationCode: codeId
@@ -160,5 +160,45 @@ export class UsersService {
       })
     return { _id: user._id }
   }
+  async forgotPassword(email: string) {
+    const user = await this.userModel.findOne({ email: email });
+    // console.log(user);
+    if (!user) {
+      throw new BadRequestException("Không tồn tại email");
+    }
+    const codeId = uuidv4();
+    await this.userModel.updateOne({ _id: user._id }, {
+      codeId: codeId,
+      codeExpired: dayjs().add(30, 'seconds')
+    })
+    this.mailerService
+      .sendMail({
+        to: user.email, // list of receivers
+        from: 'noreply@nestjs.com', // sender address
+        subject: 'Reset Password', // Subject line
+        context: {
+          name: user.name,
+          activationCode: codeId
+        },
+        template: 'register'
+      })
+    return { codeId: codeId };
+  }
+  async changePassword(data: ChangePasswordDto) {
+    const user = await this.userModel.findOne({ email: data.email });
+    if (!user) {
+      throw new BadRequestException("Không tồn tại email");
+    }
+    const check = dayjs().isBefore(user.codeExpired) && data.codeId === user.codeId;
+    if (!check) {
+      throw new BadRequestException("CodeId sai hoặc hết hạn!");
+    }
+    const checkPassword = data.password === data.confirmPassword;
+    if (!checkPassword) {
+      throw new BadRequestException("Mật khẩu không trùng khớp!");
+    }
+    const hashedPassword = hashPassword(data.password);
+    return await this.userModel.updateOne({ _id: user._id }, { password: hashedPassword })
 
+  }
 }
