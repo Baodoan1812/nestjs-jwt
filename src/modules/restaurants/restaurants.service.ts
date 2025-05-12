@@ -1,26 +1,39 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
-
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Restaurant } from './schemas/restaurant.schema';
 @Injectable()
 export class RestaurantsService {
-  create(createRestaurantDto: CreateRestaurantDto) {
-    return 'This action adds a new restaurant';
+  constructor(@InjectModel(Restaurant.name) private RestaurantModel: Model<Restaurant>) { }
+  async create(createRestaurantDto: CreateRestaurantDto) {
+    return await this.RestaurantModel.create(createRestaurantDto);
   }
 
   findAll() {
     return `This action returns all restaurants`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} restaurant`;
+  async findOne(id: string) {
+    return await this.RestaurantModel.findOne({ _id: id, isDeleted: false });
   }
 
-  update(id: number, updateRestaurantDto: UpdateRestaurantDto) {
-    return `This action updates a #${id} restaurant`;
+  async update(id: string, updateRestaurantDto: UpdateRestaurantDto) {
+    try {
+      await this.RestaurantModel.findOne({ _id: id, isDeleted: false });
+      return await this.RestaurantModel.updateOne({ _id: id }, updateRestaurantDto);
+    } catch (error) {
+      throw new BadRequestException('Error updating restaurant');
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} restaurant`;
+  async remove(id: string) {
+    try {
+      await this.findOne(id);
+      return await this.RestaurantModel.updateOne({ _id: id }, { isDeleted: true });
+    } catch (error) {
+      throw new BadRequestException('Error deleting restaurant');
+    }
   }
 }

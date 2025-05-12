@@ -20,6 +20,8 @@ export class Restaurant {
 
     @Prop()
     rating: number;
+    @Prop({ default: false })
+    isDeleted: boolean;
 
 }
 
