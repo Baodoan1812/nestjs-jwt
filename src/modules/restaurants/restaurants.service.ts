@@ -11,8 +11,18 @@ export class RestaurantsService {
     return await this.RestaurantModel.create(createRestaurantDto);
   }
 
-  findAll() {
-    return `This action returns all restaurants`;
+  async findAll() {
+    const restaurants = await this.RestaurantModel.find({ isDeleted: false });
+    return restaurants.map((restaurant) => {
+      return {
+        id: restaurant._id,
+        name: restaurant.name,
+        address: restaurant.address,
+        phone: restaurant.phone,
+        email: restaurant.email,
+        isDeleted: restaurant.isDeleted,
+      };
+    });
   }
 
   async findOne(id: string) {

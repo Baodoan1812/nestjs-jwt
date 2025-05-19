@@ -53,5 +53,4 @@ export class AuthController {
     async changePassword(@Body() changePassword: ChangePasswordDto) {
         return this.authService.changePassword(changePassword)
     }
-
 }
